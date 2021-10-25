@@ -1,0 +1,76 @@
+version: '3'
+volumes:
+  percona:
+    driver: local
+networks:
+  percona:
+    external: false
+services:
+  #
+  #  Mail Server
+  #
+  #  mail-server: {}
+
+  #
+  # Percona Database
+  #
+  percona:
+    image: percona/percona-server@sha256:ad0f73c99b004074c2e8555c5229d247e95df8a9f7c0f0433d73bc86881f13d9 # percona/percona-server:8.0.26
+    environment:
+    - MYSQL_DATABASE=banking
+    - MYSQL_USER=agat
+    - MYSQL_PASSWORD=agat
+    - MYSQL_ROOT_USER=root
+    - MYSQL_ROOT_PASSWORD=root
+    networks:
+    - percona
+    ports:
+    - '127.0.0.1:3306:3306'
+    volumes:
+    - percona:/var/lib/mysql
+
+  percona-setup:
+    image: migrate/migrate@sha256:254d67343a2389383b530d9049610f21f4d302557288c649ebbb761ea96b10af # migrate/migrate:v4.15.1
+    entrypoint: ['/bin/sh', '/docker-entrypoint.sh']
+    environment:
+    - MYSQL_HOST=percona
+    - MYSQL_PORT=3306
+    - MYSQL_USER=root
+    - MYSQL_PASSWORD=root
+    - MYSQL_DATABASE=banking
+    networks:
+    - percona
+    volumes:
+    - ./percona/docker-entrypoint.sh:/docker-entrypoint.sh
+    - ./../../migrations/percona:/migrations:ro
+    depends_on:
+    - percona
+
+  #
+  #  Full-Text Search Engine
+  #
+  #  elasticsearch: {}
+
+  #
+  #  S3 Object Storage
+  #
+  #  minio: {}
+
+  #
+  #  Request Tracing
+  #
+  #  jaeger: {}
+
+  #
+  #  Metrics
+  #
+  #  prometheus: {}
+
+  #  prometheus-grafana: {}
+
+  #
+  #  Logging
+  #
+  #  loki: {}
+
+  #  loki-grafana: {}
