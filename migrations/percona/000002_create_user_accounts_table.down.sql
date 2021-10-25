@@ -1,0 +1,11 @@
+BEGIN;
+
+DROP TABLE user_accounts;
+
+TRUNCATE TABLE users;
+
+ALTER TABLE users AUTO_INCREMENT = 1;
+
+ALTER TABLE users MODIFY COLUMN user_id VARCHAR(32);
+
+COMMIT;
