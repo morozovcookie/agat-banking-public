@@ -74,3 +74,13 @@ services:
   #  loki: {}
 
   #  loki-grafana: {}
+
+  #
+  #  OpenAPI Specification
+  #
+  openapi:
+    image: swaggerapi/swagger-ui@sha256:c347fa575ca0bcfcf643ba2a738e724916ed9aa5d6f8c81b93c241364c21bea4 # swaggerapi/swagger-ui:v3.52.5
+    volumes:
+    - ./../../api/v1/swagger.json:/app/swagger.json:ro
+    ports:
+    - '8081:8080'

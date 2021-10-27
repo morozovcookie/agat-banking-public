@@ -1,0 +1,15 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Concern Agat Banking",
+    "description": "Internal banking system for cash accounting",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https"
+    }
+  ],
+  "paths": {
+  }
+}
