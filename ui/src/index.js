@@ -1,9 +1,9 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
+import './index.css';
 import { ConfigProvider } from 'antd';
 import { Router } from '@routes';
 import { LocaleStore } from '@stores';
-import './index.css';
 import reportWebVitals from './reportWebVitals';
 
 

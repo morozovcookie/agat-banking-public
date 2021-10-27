@@ -1,7 +1,7 @@
 import React from 'react';
 import { Layout, List, Button } from 'antd';
 import { LocaleStore } from '@stores';
-import { UserLoginForm, Logo } from './components';
+import { UserLoginForm, HeaderLogo } from './components';
 import { LayoutStyle, HeaderStyle, ContentStyle } from './UserLogin.styles';
 
 const UserLogin = () => {
@@ -41,7 +41,7 @@ const UserLogin = () => {
     return (
         <Layout style={LayoutStyle}>
             <Layout.Header style={HeaderStyle}>
-                <Logo />
+                <HeaderLogo />
             </Layout.Header>
             <Layout.Content style={ContentStyle}>
                 <UserLoginForm />
