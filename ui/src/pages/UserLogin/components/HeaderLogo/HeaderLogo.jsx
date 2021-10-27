@@ -1,9 +1,9 @@
 import React from 'react';
 import { Typography } from 'antd';
 import { BankTwoTone } from '@ant-design/icons';
-import { TitleStyle, IconStyle } from './Logo.styles';
+import { TitleStyle, IconStyle } from './HeaderLogo.styles';
 
-const Logo = () => {
+const HeaderLogo = () => {
     const titleProps = {
         level: 4,
         style: TitleStyle
@@ -22,4 +22,4 @@ const Logo = () => {
     );
 };
 
-export default Logo;
+export default HeaderLogo;

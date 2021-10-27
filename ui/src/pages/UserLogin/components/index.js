@@ -2,6 +2,6 @@ import UserLoginForm from './UserLoginForm/UserLoginForm';
 import UserNameInput from './UserNameInput/UserNameInput';
 import PasswordInput from './PasswordInput/PasswordInput';
 import LogInButton from './LogInButton/LogInButton';
-import Logo from './Logo/Logo';
+import HeaderLogo from './HeaderLogo/HeaderLogo';
 
-export { UserLoginForm, UserNameInput, PasswordInput, LogInButton, Logo }
+export { UserLoginForm, UserNameInput, PasswordInput, LogInButton, HeaderLogo }
