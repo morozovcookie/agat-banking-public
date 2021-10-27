@@ -1,6 +1,5 @@
 import React from 'react';
 import { Layout, List, Button } from 'antd';
-import { LocaleStore } from '@stores';
 import { UserLoginForm, HeaderLogo } from './components';
 import { LayoutStyle, HeaderStyle, ContentStyle } from './UserLogin.styles';
 
@@ -18,7 +17,7 @@ const UserLogin = () => {
 
     const onChangeLocale = (locale: String) => {
         return (event) => {
-            LocaleStore.dispatch({type: locale});
+            console.log(locale);
         }
     }
 

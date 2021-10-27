@@ -1,29 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import { ConfigProvider } from 'antd';
 import { Router } from '@routes';
-import { LocaleStore } from '@stores';
 import reportWebVitals from './reportWebVitals';
-
-
-const LocaleProvider = () => {
-    const [locale, setLocale] = useState('en_US')
-
-    useEffect(() => {
-        LocaleStore.subscribe(() => setLocale(LocaleStore.getState().locale));
-    }, [])
-
-    return (
-        <ConfigProvider locale={locale}>
-            <Router />
-        </ConfigProvider>
-    );
-};
 
 ReactDOM.render(
   <React.StrictMode>
-      <LocaleProvider />
+      <Router />
   </React.StrictMode>,
   document.getElementById('root')
 );
