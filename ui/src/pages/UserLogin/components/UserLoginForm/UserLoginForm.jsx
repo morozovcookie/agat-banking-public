@@ -4,20 +4,20 @@ import { UserLoginFormCardStyle, UserLoginFormStyle, ForgotPasswordStyles } from
 import { UserNameInput, PasswordInput, LogInButton } from './../';
 
 const UserLoginForm = () => {
-    const onFinish = (values: any) => {
-        console.log(values);
-    };
-
     const cardMetaProps = {
         title: 'Log in',
         description: 'Log in into your account'
     }
 
+    const submitForm = (values: any) => {
+        console.log(values);
+    };
+
     const formProps = {
         layout: 'vertical',
         requiredMark: false,
         style: UserLoginFormStyle,
-        onFinish: onFinish,
+        onFinish: submitForm,
     }
 
     const forgotPasswordProps = {
