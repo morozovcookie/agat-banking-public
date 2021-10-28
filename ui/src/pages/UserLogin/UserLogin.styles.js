@@ -8,7 +8,8 @@ const HeaderStyle = {
 }
 
 const ContentStyle = {
-    padding: 48
+    padding: 48,
+    minHeight: '522px'
 }
 
 export { LayoutStyle, HeaderStyle, ContentStyle }

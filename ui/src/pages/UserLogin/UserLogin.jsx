@@ -1,39 +1,26 @@
 import React from 'react';
+import { useDispatch } from 'react-redux';
 import { Layout, List, Button } from 'antd';
+import { switchOnEnglishLocale, switchOnRussianLocale } from '@store/i18n/actions';
 import { UserLoginForm, HeaderLogo } from './components';
 import { LayoutStyle, HeaderStyle, ContentStyle } from './UserLogin.styles';
 
 const UserLogin = () => {
-    const items = [
-        {
-            locale: 'en_US',
-            caption: 'English'
-        },
-        {
-            locale: 'ru_RU',
-            caption: 'Русский'
-        }
-    ]
+    const dispatch = useDispatch();
 
-    const onChangeLocale = (locale: String) => {
-        return (event) => {
-            console.log(locale);
-        }
-    }
+    const onChangeLocale = (dispatch, switcher) => () => dispatch(switcher());
+
+    const items = [
+        <Button type='link' onClick={onChangeLocale(dispatch, switchOnEnglishLocale)}>English</Button>,
+        <Button type='link' onClick={onChangeLocale(dispatch, switchOnRussianLocale)}>Русский</Button>
+    ]
 
     const listProps = {
         grid: {
-            gutter: 12,
             columns: items.length,
         },
         dataSource: items,
-        renderItem: item => (
-            <List.Item style={{margin: 0}}>
-                <Button type='link' onClick={onChangeLocale(item.locale)}>
-                    {item.caption}
-                </Button>
-            </List.Item>
-        )
+        renderItem: item => <List.Item style={{margin: 0}}>{item}</List.Item>
     }
 
 
