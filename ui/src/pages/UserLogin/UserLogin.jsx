@@ -33,7 +33,7 @@ const UserLogin = () => {
                 <UserLoginForm />
             </Layout.Content>
             <Layout.Footer>
-                <List {...listProps} style={{width: '203px', left: '50%', marginLeft: '-101.5px'}} />
+                <List {...listProps} style={{width: '167px', left: '50%', marginLeft: '-83.5px'}} />
             </Layout.Footer>
         </Layout>
     );
