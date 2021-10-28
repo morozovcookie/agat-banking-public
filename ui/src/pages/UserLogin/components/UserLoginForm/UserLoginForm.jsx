@@ -1,12 +1,19 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Form, Divider, Typography } from 'antd';
+import { useSelector } from 'react-redux';
+import {localeSelector} from '@store/i18n/selector';
 import { UserLoginFormCardStyle, UserLoginFormStyle, ForgotPasswordStyles } from './UserLoginForm.styles';
 import { UserNameInput, PasswordInput, LogInButton } from './../';
 
 const UserLoginForm = () => {
+    const locale = useSelector(localeSelector);
+    const [currentLocale, setCurrentLocale] = useState(locale.LogIn);
+
+    useEffect(() => setCurrentLocale(locale.LogIn), [locale]);
+
     const cardMetaProps = {
-        title: 'Log in',
-        description: 'Log in into your account'
+        title: currentLocale.cardMetaTitle,
+        description: currentLocale.cardMetaDescription,
     }
 
     const submitForm = (values: any) => {
@@ -28,21 +35,17 @@ const UserLoginForm = () => {
     return (
         <Card style={UserLoginFormCardStyle}>
             <Card.Meta {...cardMetaProps} />
-            <Form {...formProps} >
+            <Form {...formProps}>
                 <UserNameInput name='username' />
                 <PasswordInput name='password' />
 
                 <Form.Item>
                     <LogInButton />
-                    <Typography.Link {...forgotPasswordProps} >
-                        Forgot password?
-                    </Typography.Link>
+                    <Typography.Link {...forgotPasswordProps}>{currentLocale.forgotPasswordLinkText}</Typography.Link>
                 </Form.Item>
             </Form>
             <Divider />
-            <Typography.Text type='secondary'>
-                Unable to access your account? To request an account, please contact your site administrators.
-            </Typography.Text>
+            <Typography.Text type='secondary'>{currentLocale.footerText}</Typography.Text>
         </Card>
     );
 };

@@ -10,8 +10,8 @@ import reportWebVitals from './reportWebVitals';
 import {ConfigProvider} from 'antd';
 
 const Root = () => {
-    let locale = useSelector(localeSelector);
-    let [currentLocale, setCurrentLocale] = useState(locale);
+    const locale = useSelector(localeSelector);
+    const [currentLocale, setCurrentLocale] = useState(locale);
 
     useEffect(() => setCurrentLocale(locale), [locale])
 

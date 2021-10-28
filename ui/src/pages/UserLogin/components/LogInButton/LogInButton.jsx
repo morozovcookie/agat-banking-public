@@ -5,8 +5,8 @@ import { localeSelector } from '@store/i18n/selector';
 import { LoginButtonFormStyle } from './LoginButton.styles'
 
 const LogInButton = () => {
-    let locale = useSelector(localeSelector);
-    let [currentLocale, setCurrentLocale] = useState(locale.LogIn);
+    const locale = useSelector(localeSelector);
+    const [currentLocale, setCurrentLocale] = useState(locale.LogIn);
 
     useEffect(() => setCurrentLocale(locale.LogIn), [locale]);
 
