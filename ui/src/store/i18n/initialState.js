@@ -1,6 +1,16 @@
 import { defaultLocale } from '@i18n';
+import store from 'store';
 
-// TODO: по умолчанию берем defaultLocale, но если что-то есть в браузере, то тянет оттуда
-export const initialState = {
+const initialState = {
     locale: defaultLocale,
 };
+
+let storedLocale = store.get('locale');
+if (storedLocale === undefined) {
+    storedLocale = initialState.locale;
+    store.set('locale', storedLocale);
+}
+
+initialState.locale = storedLocale;
+
+export { initialState }
