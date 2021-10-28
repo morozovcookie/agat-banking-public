@@ -1,6 +1,9 @@
 import enUS from 'antd/lib/locale/en_US';
+import { version } from './version';
 
 const localeValues = {
+    version: version,
+
     ...enUS,
 
     LogIn: {

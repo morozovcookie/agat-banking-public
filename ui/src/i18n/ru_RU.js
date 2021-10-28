@@ -1,6 +1,9 @@
 import ruRU from 'antd/lib/locale/ru_RU';
+import { version } from './version';
 
 const localeValues = {
+    version: version,
+
     ...ruRU,
 
     LogIn: {
