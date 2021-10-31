@@ -17,8 +17,8 @@ type SecretString interface {
 	DecryptedString() string
 }
 
-// SecretStringFactory represents a service initialize SecretString object.
-type SecretStringFactory interface {
+// SecretFactory represents a service initialize SecretString object.
+type SecretFactory interface {
 	// CreateFromEncryptedData creates SecretString object from encrypted data.
 	CreateFromEncryptedData(ctx context.Context, r io.Reader) (SecretString, error)
 

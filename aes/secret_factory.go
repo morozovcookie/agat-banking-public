@@ -16,7 +16,7 @@ import (
 const CipherKeyLength = 32
 
 var (
-	_ banking.SecretStringFactory = (*SecretStringFactory)(nil)
+	_ banking.SecretFactory = (*SecretFactory)(nil)
 
 	// ErrWrongCipherTextLength is the error that will be raised when length of ciphertext is less than size of nonce.
 	ErrWrongCipherTextLength = errors.New("wrong ciphertext length")
@@ -25,14 +25,14 @@ var (
 	ErrWrongKeyLength = errors.New("wrong key length")
 )
 
-// SecretStringFactory represents a service initialize SecretString object.
-type SecretStringFactory struct {
+// SecretFactory represents a service initialize SecretString object.
+type SecretFactory struct {
 	nonceGenerator NonceGenerator
 	aead           cipher.AEAD
 }
 
-// NewSecretStringFactory returns a new SecretStringFactory instance.
-func NewSecretStringFactory(nonceGenerator NonceGenerator, key io.Reader) (*SecretStringFactory, error) {
+// NewSecretFactory returns a new SecretStringFactory instance.
+func NewSecretFactory(nonceGenerator NonceGenerator, key io.Reader) (*SecretFactory, error) {
 	buf := bytes.NewBuffer(nil)
 
 	if _, err := buf.ReadFrom(key); err != nil {
@@ -53,7 +53,7 @@ func NewSecretStringFactory(nonceGenerator NonceGenerator, key io.Reader) (*Secr
 		return nil, errors.Wrap(err, "init secret string factory")
 	}
 
-	f := &SecretStringFactory{
+	f := &SecretFactory{
 		nonceGenerator: nonceGenerator,
 		aead:           nil,
 	}
@@ -66,7 +66,7 @@ func NewSecretStringFactory(nonceGenerator NonceGenerator, key io.Reader) (*Secr
 }
 
 // CreateFromEncryptedData creates SecretString object from encrypted data.
-func (f *SecretStringFactory) CreateFromEncryptedData(_ context.Context, r io.Reader) (banking.SecretString, error) {
+func (f *SecretFactory) CreateFromEncryptedData(_ context.Context, r io.Reader) (banking.SecretString, error) {
 	buf := new(bytes.Buffer)
 	if _, err := buf.ReadFrom(r); err != nil {
 		return nil, errors.Wrap(err, "create from encrypted string")
@@ -96,7 +96,7 @@ func (f *SecretStringFactory) CreateFromEncryptedData(_ context.Context, r io.Re
 }
 
 // CreateFromDecryptedData creates SecretString object from decrypted data.
-func (f *SecretStringFactory) CreateFromDecryptedData(ctx context.Context, r io.Reader) (banking.SecretString, error) {
+func (f *SecretFactory) CreateFromDecryptedData(ctx context.Context, r io.Reader) (banking.SecretString, error) {
 	nonce, err := f.nonceGenerator.GenerateNonce(ctx, f.aead.NonceSize())
 	if err != nil {
 		return nil, errors.Wrap(err, "create from decrypted data")

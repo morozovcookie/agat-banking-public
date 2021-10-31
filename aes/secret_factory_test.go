@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSecretStringFactory_CreateFromDecryptedData(t *testing.T) {
+func TestSecretFactory_CreateFromDecryptedData(t *testing.T) {
 	type meta struct {
 		name    string
 		enabled bool
@@ -76,7 +76,7 @@ func TestSecretStringFactory_CreateFromDecryptedData(t *testing.T) {
 
 			nonceGenerator := tt.fields.setupNonceGenerator()
 
-			factory, err := aes.NewSecretStringFactory(nonceGenerator, bytes.NewBufferString(tt.fields.key))
+			factory, err := aes.NewSecretFactory(nonceGenerator, bytes.NewBufferString(tt.fields.key))
 			assert.NoError(t, err)
 
 			ss, err := factory.CreateFromDecryptedData(tt.args.ctx, bytes.NewBufferString(tt.args.decryptedText))
@@ -89,7 +89,7 @@ func TestSecretStringFactory_CreateFromDecryptedData(t *testing.T) {
 	}
 }
 
-func TestSecretStringFactory_CreateFromEncryptedData(t *testing.T) {
+func TestSecretFactory_CreateFromEncryptedData(t *testing.T) {
 	type meta struct {
 		name    string
 		enabled bool
@@ -145,7 +145,7 @@ func TestSecretStringFactory_CreateFromEncryptedData(t *testing.T) {
 				t.SkipNow()
 			}
 
-			factory, err := aes.NewSecretStringFactory(nil, bytes.NewBufferString(tt.fields.key))
+			factory, err := aes.NewSecretFactory(nil, bytes.NewBufferString(tt.fields.key))
 			assert.NoError(t, err)
 
 			ss, err := factory.CreateFromEncryptedData(tt.args.ctx, bytes.NewBufferString(tt.args.encryptedText))
