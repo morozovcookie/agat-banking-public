@@ -64,7 +64,13 @@ func main() {
 	perconaQueryErrorsCounter.Add(ctx, 1, semconv.DBSystemMySQL)
 	postgresQueryErrorsCounter.Add(ctx, 1, semconv.DBSystemKey.String("clickhouse"))
 
-	http.HandleFunc("/metric", exporter.ServeHTTP)
+	http.HandleFunc("/metrics", exporter.ServeHTTP)
+
+	http.HandleFunc("/increment", func(w http.ResponseWriter, r *http.Request) {
+		perconaQueryErrorsCounter.Add(ctx, 1, semconv.DBSystemMySQL)
+
+		w.WriteHeader(http.StatusOK)
+	})
 
 	log.Fatalln(http.ListenAndServe(":2222", nil))
 }
