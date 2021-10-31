@@ -87,16 +87,14 @@ func (c *Client) PingContext(ctx context.Context) error {
 
 // BeginTx starts a transaction.
 func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (Tx, error) {
-	var tx *tx
-	{
-		var err error
-
-		if tx.Tx, err = c.db.BeginTx(ctx, opts); err != nil {
-			return nil, errors.Wrap(err, "percona begin")
-		}
+	res, err := c.db.BeginTx(ctx, opts)
+	if err != nil {
+		return nil, errors.Wrap(err, "percona begin")
 	}
 
-	return tx, nil
+	return &tx{
+		Tx: res,
+	}, nil
 }
 
 // PrepareContext returns prepared statement.
