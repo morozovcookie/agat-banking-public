@@ -12,10 +12,10 @@ type Tx interface {
 	Preparer
 
 	// Commit commits the transaction.
-	Commit() error
+	Commit(ctx context.Context) error
 
 	// Rollback aborts the transaction.
-	Rollback() error
+	Rollback(ctx context.Context) error
 }
 
 // TxBeginner represents a service for creating transaction.
@@ -30,10 +30,22 @@ type tx struct {
 
 // PrepareContext returns prepared statement.
 func (tx *tx) PrepareContext(ctx context.Context, query string) (Stmt, error) {
-	stmt, err := tx.Tx.PrepareContext(ctx, query)
+	res, err := tx.Tx.PrepareContext(ctx, query) // nolint:sqlclosecheck
 	if err != nil {
 		return nil, errors.Wrap(err, "tx prepare")
 	}
 
-	return stmt, nil
+	return &stmt{
+		Stmt: res,
+	}, nil
+}
+
+// Commit commits the transaction.
+func (tx *tx) Commit(_ context.Context) error {
+	return tx.Tx.Commit()
+}
+
+// Rollback aborts the transaction.
+func (tx *tx) Rollback(_ context.Context) error {
+	return tx.Tx.Rollback()
 }

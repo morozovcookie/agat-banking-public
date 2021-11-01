@@ -19,7 +19,15 @@ type Stmt interface {
 	QueryRowContext(ctx context.Context, args ...interface{}) *sql.Row
 
 	// Close closes the statement.
-	Close() error
+	Close(ctx context.Context) error
+}
+
+type stmt struct {
+	*sql.Stmt
+}
+
+func (s *stmt) Close(_ context.Context) error {
+	return s.Stmt.Close()
 }
 
 // Preparer represents a service for creating prepared statement.

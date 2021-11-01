@@ -5,8 +5,7 @@ import (
 	"database/sql"
 	"time"
 
-	// MySQL driver.
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
 )
 
@@ -35,11 +34,14 @@ type Client struct {
 	maxIdleConns    int
 	connMaxIdleTime time.Duration
 	maxOpenConns    int
+
+	dbName string
+	dbUser string
 }
 
 // NewClient returns a new Client instance.
 func NewClient(dsn string) *Client {
-	client := &Client{
+	return &Client{
 		db:  nil,
 		dsn: dsn,
 
@@ -48,14 +50,29 @@ func NewClient(dsn string) *Client {
 		connMaxIdleTime: DefaultConnMaxIdleTime,
 		maxOpenConns:    DefaultMaxOpenConns,
 	}
+}
 
-	return client
+// DBName returns name of database which client are connected.
+func (c *Client) DBName() string {
+	return c.dbName
+}
+
+// DBUser returns name of user which connected to the database.
+func (c *Client) DBUser() string {
+	return c.dbUser
 }
 
 // Connect opens and set up a database.
 func (c *Client) Connect(ctx context.Context) (err error) {
 	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(ConnectTimeout))
 	defer cancel()
+
+	cfg, err := mysql.ParseDSN(c.dsn)
+	if err != nil {
+		return errors.Wrap(err, "percona connect")
+	}
+
+	c.dbName, c.dbUser = cfg.DBName, cfg.User
 
 	if c.db, err = sql.Open(DriverName, c.dsn); err != nil {
 		return errors.Wrap(err, "percona connect")
@@ -99,12 +116,14 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (Tx, error) {
 
 // PrepareContext returns prepared statement.
 func (c *Client) PrepareContext(ctx context.Context, query string) (Stmt, error) {
-	stmt, err := c.db.PrepareContext(ctx, query)
+	res, err := c.db.PrepareContext(ctx, query) // nolint:sqlclosecheck
 	if err != nil {
 		return nil, errors.Wrap(err, "percona prepare")
 	}
 
-	return stmt, nil
+	return &stmt{
+		Stmt: res,
+	}, nil
 }
 
 // Close closes database connection.
