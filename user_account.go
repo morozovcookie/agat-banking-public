@@ -1,6 +1,7 @@
 package banking
 
 import (
+	"context"
 	"time"
 )
 
@@ -28,5 +29,16 @@ type UserAccount struct {
 	UpdateAt time.Time
 }
 
+// ComparePassword returns true if passed password value and stored password value are the same.
+func (ua *UserAccount) ComparePassword(password string) bool {
+	return false
+}
+
 // UserAccountService represents a service for managing UserAccount data.
-type UserAccountService struct{}
+type UserAccountService interface {
+	// FindUserAccountByEmailAddress returns UserAccount by UserAccount.EmailAddress.
+	FindUserAccountByEmailAddress(ctx context.Context, emailAddress string) (*UserAccount, error)
+
+	// FindUserAccountByUserName returns UserAccount by UserAccount.UserName.
+	FindUserAccountByUserName(ctx context.Context, userName string) (*UserAccount, error)
+}

@@ -3,6 +3,7 @@ module github.com/morozovcookie/agat-banking
 go 1.17
 
 require (
+	github.com/Masterminds/squirrel v1.5.1
 	github.com/go-chi/chi/v5 v5.0.5
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/kr/pretty v0.2.0 // indirect
