@@ -80,6 +80,7 @@ func (svc *UserAccountService) findUserAccount(ctx context.Context, pred interfa
 	if err != nil {
 		return nil, errors.Wrap(err, "find user account")
 	}
+
 	defer func(ctx context.Context, stmt Stmt) {
 		if closeErr := stmt.Close(ctx); closeErr != nil {
 			err = closeErr

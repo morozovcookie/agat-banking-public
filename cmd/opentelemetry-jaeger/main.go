@@ -39,7 +39,7 @@ func main() {
 			trace.WithAttributes(semconv.HTTPServerAttributesFromHTTPRequest("", "/process", r)...))
 		defer span.End()
 
-		r = r.WithContext(ctx)
+		_ = r.WithContext(ctx)
 
 		time.Sleep(time.Second)
 
