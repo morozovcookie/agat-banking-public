@@ -30,7 +30,7 @@ type UserAccount struct {
 }
 
 // ComparePassword returns true if passed password value and stored password value are the same.
-func (ua *UserAccount) ComparePassword(password string) bool {
+func (ua *UserAccount) ComparePassword(password SecretString) bool {
 	return false
 }
 
