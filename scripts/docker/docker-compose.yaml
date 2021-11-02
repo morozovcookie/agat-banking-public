@@ -20,6 +20,14 @@ volumes:
     driver: local
   grafana-log:
     driver: local
+  vault-logs:
+    driver: local
+  vault-data:
+    driver: local
+  vault-policies:
+    driver: local
+  consul-data:
+    driver: local
 networks:
   percona:
     external: false
@@ -40,6 +48,10 @@ networks:
   loki:
     external: false
   prometheus:
+    external: false
+  vault:
+    external: false
+  consul:
     external: false
 services:
   #
@@ -282,3 +294,37 @@ services:
     - elasticsearch
     - jaeger-query
     - loki
+
+  #
+  #  Hashicorp
+  #
+  vault:
+    image: vault@sha256:b98869b86956112ea98ee1ae4dfa5574841e9972b952fd14164b3cf2b654c311 # vault:1.8.4
+    command: server -dev -config=/vault-config.hcl
+    environment:
+    - VAULT_DEV_ROOT_TOKEN_ID=root
+    volumes:
+    - ./vault/config.hcl:/vault-config.hcl:ro
+    - vault-policies:/vault/policies
+    - vault-data:/vault/data
+    - vault-logs:/vault/logs
+    networks:
+    - vault
+    - consul
+    ports:
+    - '127.0.0.1:8200:8200'
+    cap_add:
+    - IPC_LOCK
+    depends_on:
+    - consul
+
+  consul:
+    image: consul@sha256:b8f1e9c2d0e3c9b2714f89d3c74722b214b7695a540e8c32c34346c228b24a0c # consul:1.9.10
+    command: agent -server -bind 0.0.0.0 -client 0.0.0.0 -bootstrap-expect 1 -config-file=/consul-config.hcl
+    volumes:
+    - ./consul/config.hcl:/consul-config.hcl:ro
+    - consul-data:/consul/data
+    networks:
+    - consul
+    ports:
+    - '127.0.0.1:8500:8500'
