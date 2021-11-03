@@ -1,0 +1,34 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Concern Agat Banking",
+    "description": "Internal banking system for cash accounting",
+    "termsOfService": "",
+    "contact": {
+      "name": "Konstantin Morozov",
+      "url": "https://github.com/morozovcookie",
+      "email": "morozov.cookie@gmail.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    },
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://bankingd",
+      "description": "Docker Compose environment"
+    }
+  ],
+  "paths": {
+    "/api/v1/signin": {
+      "$ref": "./paths/signin.json"
+    }
+  },
+  "components": {
+    "schemas": {
+      "$ref": "./schemas/_index.json"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "post": {
+    "summary": "Signing in a user in the system",
+    "operationId": "signIn",
+    "requestBody": {
+      "description": "user authentication information",
+      "content": {
+        "application/json": {
+          "schema": {
+            "$ref": "./../schemas/signin.json"
+          },
+          "example": {
+            "username": "admin",
+            "password": "admin"
+          }
+        }
+      },
+      "required": true
+    },
+    "responses": {
+      "200": {},
+      "400": {},
+      "404": {},
+      "500": {}
+    },
+    "tags": [
+      "auth"
+    ]
+  }
+}

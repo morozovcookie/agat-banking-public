@@ -63,10 +63,12 @@ services:
 
   banking-openapi:
     image: swaggerapi/swagger-ui@sha256:c347fa575ca0bcfcf643ba2a738e724916ed9aa5d6f8c81b93c241364c21bea4 # swaggerapi/swagger-ui:v3.52.5
+    environment:
+    - SWAGGER_JSON=/openapi/openapi.json
     volumes:
-      - ./../../api/v1/swagger.json:/app/swagger.json:ro
+    - ./../../api/v1:/openapi
     ports:
-      - '127.0.0.1:8081:8080'
+    - '127.0.0.1:8081:8080'
 
   banking-mysql-schema:
     build:

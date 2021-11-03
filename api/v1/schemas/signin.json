@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "properties": {
+    "username": {
+      "type": "string",
+      "description": "Username or email address for user identification"
+    },
+    "password": {
+      "type": "string",
+      "description": "User password"
+    }
+  },
+  "required": [
+    "username",
+    "password"
+  ]
+}
