@@ -1,4 +1,4 @@
-package jwx
+package rsa
 
 import (
 	"bytes"
@@ -9,14 +9,11 @@ import (
 	"github.com/lestrrat-go/jwx/jwa"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/morozovcookie/agat-banking/jwx"
 	"github.com/pkg/errors"
 )
 
-// TokenSigner represents a service for signing JWT.
-type TokenSigner interface {
-	// SignToken signs token.
-	SignToken(ctx context.Context, dst io.Writer, src jwt.Token) error
-}
+var _ jwx.TokenSigner = (*RS512TokenSigner)(nil)
 
 // RS512TokenSigner represents a service for signing JWT.
 type RS512TokenSigner struct {

@@ -3,14 +3,15 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
-	"crypto/rsa"
+	stdrand "crypto/rand"
+	stdrsa "crypto/rsa"
 	"log"
 
 	banking "github.com/morozovcookie/agat-banking"
 	"github.com/morozovcookie/agat-banking/aes"
-	"github.com/morozovcookie/agat-banking/aes/nonce"
+	"github.com/morozovcookie/agat-banking/aes/rand"
 	"github.com/morozovcookie/agat-banking/jwx"
+	"github.com/morozovcookie/agat-banking/jwx/rsa"
 	"github.com/morozovcookie/agat-banking/nanoid"
 	"github.com/morozovcookie/agat-banking/time"
 )
@@ -28,27 +29,27 @@ func main() {
 		err error
 	)
 
-	accessTokenPrivateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	accessTokenPrivateKey, err := stdrsa.GenerateKey(stdrand.Reader, 4096)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	factoryConfig.accessTokenSigner, err = jwx.NewRS512TokenSigner(accessTokenPrivateKey)
+	factoryConfig.accessTokenSigner, err = rsa.NewRS512TokenSigner(accessTokenPrivateKey)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	refreshTokenPrivateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	refreshTokenPrivateKey, err := stdrsa.GenerateKey(stdrand.Reader, 4096)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	factoryConfig.refreshTokenSigner, err = jwx.NewRS512TokenSigner(refreshTokenPrivateKey)
+	factoryConfig.refreshTokenSigner, err = rsa.NewRS512TokenSigner(refreshTokenPrivateKey)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	factoryConfig.secretFactory, err = aes.NewSecretFactory(nonce.NewRandomNonceGenerator(),
+	factoryConfig.secretFactory, err = aes.NewSecretFactory(rand.NewNonceGenerator(),
 		bytes.NewBufferString("a7681ff138d941377c55aefb4ab667b833a823e582c91317f5b5e33c09e6891e"))
 	if err != nil {
 		log.Fatalln(err)
