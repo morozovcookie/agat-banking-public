@@ -21,6 +21,3 @@ type User struct {
 	// UpdatedAt is the time when user was updated.
 	UpdatedAt time.Time
 }
-
-// UserService represents a service for managing User data.
-type UserService interface{}
