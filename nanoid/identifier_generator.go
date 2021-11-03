@@ -10,14 +10,6 @@ import (
 
 var _ banking.IdentifierGenerator = (*IdentifierGenerator)(nil)
 
-const (
-	// DefaultAlphabet is the alphabet used for ID characters by default.
-	DefaultAlphabet = "0123456789abcdefghijklmnopqrstuvwxyz"
-
-	// DefaultSize is the default size of identifier.
-	DefaultSize = 64
-)
-
 // IdentifierGenerator represents a service for generating unique identifier.
 type IdentifierGenerator struct {
 	alphabet string
