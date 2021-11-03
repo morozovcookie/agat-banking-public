@@ -40,8 +40,8 @@ type Client struct {
 }
 
 // NewClient returns a new Client instance.
-func NewClient(dsn string) *Client {
-	return &Client{
+func NewClient(dsn string, opts ...ClientOption) *Client {
+	client := &Client{
 		db:  nil,
 		dsn: dsn,
 
@@ -50,6 +50,12 @@ func NewClient(dsn string) *Client {
 		connMaxIdleTime: DefaultConnMaxIdleTime,
 		maxOpenConns:    DefaultMaxOpenConns,
 	}
+
+	for _, opt := range opts {
+		opt.apply(client)
+	}
+
+	return client
 }
 
 // DBName returns name of database which client are connected.
