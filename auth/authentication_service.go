@@ -1,4 +1,4 @@
-package jwx
+package auth
 
 import (
 	"context"
@@ -16,9 +16,13 @@ type AuthenticationService struct {
 }
 
 // NewAuthenticationService returns a new AuthenticationService instance.
-func NewAuthenticationService(userAccountService banking.UserAccountService) *AuthenticationService {
+func NewAuthenticationService(
+	userAccountService banking.UserAccountService,
+	tokenFactory banking.TokenFactory,
+) *AuthenticationService {
 	return &AuthenticationService{
 		userAccountService: userAccountService,
+		tokenFactory:       tokenFactory,
 	}
 }
 
