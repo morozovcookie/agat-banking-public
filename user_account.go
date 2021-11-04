@@ -3,7 +3,12 @@ package banking
 import (
 	"context"
 	"time"
+
+	"github.com/pkg/errors"
 )
+
+// ErrUserAccountDoesNotExist will be raised when user account could not be found.
+var ErrUserAccountDoesNotExist = errors.New("user account does not exist")
 
 // UserAccount represents a user account information.
 type UserAccount struct {

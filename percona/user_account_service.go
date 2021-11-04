@@ -97,6 +97,10 @@ func (svc *UserAccountService) findUserAccount(ctx context.Context, pred interfa
 
 	err = stmt.QueryRowContext(ctx, args...).Scan(&account.ID, &account.UserName, &account.EmailAddress,
 		&account.PasswordHash, &account.User.ID, &createdAt, &updatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, errors.Wrap(banking.ErrUserAccountDoesNotExist, "find user account")
+	}
+
 	if err != nil {
 		return nil, errors.Wrap(err, "find user account")
 	}
