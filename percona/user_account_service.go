@@ -3,11 +3,10 @@ package percona
 import (
 	"context"
 	"database/sql"
-	stdtime "time"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	banking "github.com/morozovcookie/agat-banking"
-	"github.com/morozovcookie/agat-banking/time"
 	"github.com/pkg/errors"
 )
 
@@ -105,10 +104,10 @@ func (svc *UserAccountService) findUserAccount(ctx context.Context, pred interfa
 		return nil, errors.Wrap(err, "find user account")
 	}
 
-	account.CreatedAt = stdtime.Unix(0, time.MillisecondsToNanoseconds(createdAt))
+	account.CreatedAt = time.Unix(0, banking.MillisecondsToNanoseconds(createdAt))
 
 	if updatedAt.Valid {
-		account.UpdateAt = stdtime.Unix(0, time.MillisecondsToNanoseconds(updatedAt.Int64))
+		account.UpdateAt = time.Unix(0, banking.MillisecondsToNanoseconds(updatedAt.Int64))
 	}
 
 	return account, nil
