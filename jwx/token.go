@@ -37,6 +37,10 @@ func NewToken(
 		tokenType: tokenType,
 	}
 
+	if err = t.token.Set(`type`, tokenType.String()); err != nil {
+		return nil, errors.Wrap(err, "init token")
+	}
+
 	for _, opt := range opts {
 		if err = opt.apply(t); err != nil {
 			return nil, errors.Wrap(err, "init token")
