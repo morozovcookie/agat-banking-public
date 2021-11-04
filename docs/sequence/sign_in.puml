@@ -1,0 +1,131 @@
+@startuml sequence_sign_in
+
+!includesub style.puml!STYLE
+
+actor User as usr
+participant "Web UI" as webui
+participant Banking as bank
+database "User\nAccounts\nDatabase" as user_accounts_db
+database "Refresh\nTokens\nDatabase" as refresh_tokens_db
+
+
+usr -> webui ++ : Input username or email
+deactivate webui
+
+usr -> webui ++ : Input password
+deactivate webui
+
+usr -> webui ++ : Submit login data
+
+webui -> webui ++ : Take username
+deactivate webui
+
+webui -> webui ++ : Take password
+deactivate webui
+
+webui -> bank ++ : <I><B>POST /api/v1/singin
+
+group#LightGoldenRodYellow #Lavender Process request
+    bank -> bank ++ : Decode request
+    deactivate bank
+
+    bank -> bank ++ : Check username on email input
+    deactivate
+end
+
+group#LightGoldenRodYellow #Lavender Find user account
+    alt#Gold #Cornsilk Email passed as login
+        bank -> bank ++ : Find user account by email
+
+        bank -> user_accounts_db ++ : SELECT ... WHERE email_address = $1 ...
+        return Query result
+
+        ' bank -> bank ++ : Find user account by email
+        deactivate bank
+
+    else
+        bank -> bank ++ : Find user account by username
+
+        bank -> user_accounts_db ++ : SELECT ... WHERE email_address = $1 ...
+        return Query result
+
+        ' bank -> bank ++ : Find user account by username
+        deactivate bank
+
+    ' Email passed as login
+    end
+
+    alt#Gold #Cornsilk User account does not exist
+        bank -> webui : <B>404 Not Found
+        webui -> usr : Account does not exist
+    else Query error
+        bank -> webui : <B>500 Internal Server Error
+        webui -> usr : Internal error
+
+        ' User account does not exist
+    end
+
+    bank -> bank ++ : Compare password
+
+    alt#Gold #Cornsilk Passwords are not equal
+        bank -> webui : <B>401 Unauthorized
+        webui -> usr : Incorrect password
+
+        ' Passwords are not equal
+    end
+
+    ' bank -> bank ++ : Compare password
+    deactivate bank
+end
+
+group#LightGoldenRodYellow #Lavender Access Token
+    bank -> bank ++ : Generate access token
+
+    alt#Gold #Cornsilk Token generation error
+        bank -> webui : <B>500 Internal Server Error
+        webui -> usr : Internal error
+
+        ' Token generation error
+    end
+
+    ' bank -> bank ++ : Generate access token
+    deactivate bank
+end
+
+group#LightGoldenRodYellow #Lavender Refresh Token
+    bank -> bank ++ : Generate refresh token
+
+    alt#Gold #Cornsilk Token generation error
+        bank -> webui : <B>500 Internal Server Error
+        webui -> usr : Internal error
+
+        ' Token generation error
+    end
+
+    bank -> refresh_tokens_db ++ : Store refresh token
+    return Query result
+
+    alt#Gold #Cornsilk Query error
+        bank -> webui : <B>500 Internal Server Error
+        webui -> usr : Internal error
+
+        ' Query error
+    end
+
+    ' bank -> bank ++ : Generate refresh token
+    deactivate bank
+end
+
+bank -> bank ++ : Create response
+deactivate bank
+
+bank -> webui : <I>(access_token, token_type, expires_in, refresh_token)
+
+return <I>Set-Cookie: refresh_token
+
+webui -> webui ++ : Store (access_token, token_type, expires_in) in memory
+deactivate webui
+
+return Authenticated
+
+@enduml

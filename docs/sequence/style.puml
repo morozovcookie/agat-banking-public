@@ -1,0 +1,13 @@
+@startuml sequence_style
+
+!startsub STYLE
+
+skinparam backgroundColor #LavenderBlush
+skinparam maxMessageSize 200
+skinparam sequenceLifeLineBackgroundColor #DarkSeaGreen
+
+autonumber "<B>[00]"
+
+!endsub
+
+@enduml
