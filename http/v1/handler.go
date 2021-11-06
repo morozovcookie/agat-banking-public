@@ -1,11 +1,19 @@
 package v1
 
 import (
+	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 )
+
+const (
+	// BasePathPrefix is the path prefix that places at the beginning of any API prefixes.
+	BasePathPrefix = "/api/v1"
+)
+
+var _ http.Handler = (*Handler)(nil)
 
 // Handler represents a base type for any HTTP handler.
 type Handler struct {
@@ -14,24 +22,23 @@ type Handler struct {
 
 // NewHandler returns a new Handler instance.
 func NewHandler() *Handler {
-	h := &Handler{
+	return &Handler{
 		router: chi.NewRouter(),
 	}
-
-	for _, fn := range []func(http.Handler) http.Handler {
-		middleware.RealIP,
-		middleware.Recoverer,
-		middleware.SetHeader("Content-Type", "application/json"),
-		middleware.RequestID,
-	} {
-		h.router.Use(fn)
-	}
-
-	h.router.Mount("/debug", middleware.Profiler())
-
-	return h
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	h.router.ServeHTTP(w, r)
+}
+
+func encodeResponse(_ context.Context, w http.ResponseWriter, status int, resp interface{}) {
+	w.WriteHeader(status)
+
+	_ = json.NewEncoder(w).Encode(resp)
+}
+
+func badRequestError(_ context.Context, w http.ResponseWriter) {
+	w.WriteHeader(http.StatusBadRequest)
 }

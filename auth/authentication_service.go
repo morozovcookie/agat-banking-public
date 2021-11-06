@@ -13,16 +13,19 @@ var _ banking.AuthenticationService = (*AuthenticationService)(nil)
 type AuthenticationService struct {
 	userAccountService banking.UserAccountService
 	tokenFactory       banking.TokenFactory
+	tokenService       banking.TokenService
 }
 
 // NewAuthenticationService returns a new AuthenticationService instance.
 func NewAuthenticationService(
 	userAccountService banking.UserAccountService,
 	tokenFactory banking.TokenFactory,
+	tokenService banking.TokenService,
 ) *AuthenticationService {
 	return &AuthenticationService{
 		userAccountService: userAccountService,
 		tokenFactory:       tokenFactory,
+		tokenService:       tokenService,
 	}
 }
 
@@ -92,6 +95,10 @@ func (svc *AuthenticationService) authenticateUser(
 
 	refreshToken, err := svc.tokenFactory.CreateRefreshToken(ctx, account)
 	if err != nil {
+		return nil, nil, errors.Wrap(err, "authenticate user")
+	}
+
+	if err = svc.tokenService.StoreToken(ctx, refreshToken); err != nil {
 		return nil, nil, errors.Wrap(err, "authenticate user")
 	}
 

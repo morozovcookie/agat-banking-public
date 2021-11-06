@@ -4,7 +4,12 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/pkg/errors"
 )
+
+// ErrTokenDoesNotExist will be raised when token could not be found.
+var ErrTokenDoesNotExist = errors.New("token does not exist")
 
 // TokenType represents an enum which describes a possible types for token.
 type TokenType int
@@ -63,4 +68,21 @@ type TokenFactory interface {
 
 	// CreateRefreshToken returns the refresh token.
 	CreateRefreshToken(ctx context.Context, account *UserAccount) (Token, error)
+}
+
+// TokenService represents a service for managing token data.
+type TokenService interface {
+	// StoreToken stores a single Token.
+	StoreToken(ctx context.Context, token Token) error
+
+	// ExpireToken expires single Token.
+	// Return the new Token state after update.
+	ExpireToken(ctx context.Context, id ID) (Token, error)
+
+	// FindTokenByID returns a single Token.
+	FindTokenByID(ctx context.Context, id ID) (Token, error)
+
+	// RemoveExpiredTokens removes expired tokens.
+	// Return tokens list after remove.
+	RemoveExpiredTokens(ctx context.Context, opts FindOptions) ([]Token, error)
 }
