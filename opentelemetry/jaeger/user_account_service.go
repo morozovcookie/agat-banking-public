@@ -13,23 +13,21 @@ var _ banking.UserAccountService = (*UserAccountService)(nil)
 
 // UserAccountService represents a service for managing UserAccount data.
 type UserAccountService struct {
+	tracer  trace.Tracer
 	wrapped banking.UserAccountService
-
-	tracer trace.Tracer
-	attrs  []attribute.KeyValue
+	attrs   []attribute.KeyValue
 }
 
 // NewUserAccountService returns a new UserAccountService instance.
 func NewUserAccountService(
-	svc banking.UserAccountService,
 	tracer trace.Tracer,
+	svc banking.UserAccountService,
 	attrs ...attribute.KeyValue,
 ) *UserAccountService {
 	return &UserAccountService{
+		tracer:  tracer,
 		wrapped: svc,
-
-		tracer: tracer,
-		attrs:  attrs,
+		attrs:   attrs,
 	}
 }
 

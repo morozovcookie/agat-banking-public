@@ -15,20 +15,16 @@ var _ percona.Stmt = (*stmt)(nil)
 
 // Stmt is a prepared statement.
 type stmt struct {
+	tracer  trace.Tracer
 	wrapped percona.Stmt
-	query   string
-
-	tracer trace.Tracer
-	attrs  []attribute.KeyValue
+	attrs   []attribute.KeyValue
 }
 
-func newStmt(source percona.Stmt, query string, tracer trace.Tracer, attrs ...attribute.KeyValue) *stmt {
+func newStmt(tracer trace.Tracer, source percona.Stmt, attrs ...attribute.KeyValue) *stmt {
 	return &stmt{
+		tracer:  tracer,
 		wrapped: source,
-		query:   query,
-
-		tracer: tracer,
-		attrs:  attrs,
+		attrs:   attrs,
 	}
 }
 
@@ -100,19 +96,17 @@ var _ percona.Preparer = (*Preparer)(nil)
 
 // Preparer represents a service for creating prepared statement.
 type Preparer struct {
+	tracer  trace.Tracer
 	wrapped percona.Preparer
-
-	tracer trace.Tracer
-	attrs  []attribute.KeyValue
+	attrs   []attribute.KeyValue
 }
 
 // NewPreparer returns a new Preparer instance.
-func NewPreparer(preparer percona.Preparer, tracer trace.Tracer, attrs ...attribute.KeyValue) *Preparer {
+func NewPreparer(tracer trace.Tracer, preparer percona.Preparer, attrs ...attribute.KeyValue) *Preparer {
 	return &Preparer{
+		tracer:  tracer,
 		wrapped: preparer,
-
-		tracer: tracer,
-		attrs:  attrs,
+		attrs:   attrs,
 	}
 }
 
@@ -132,5 +126,5 @@ func (p *Preparer) PrepareContext(ctx context.Context, query string) (percona.St
 
 	span.SetStatus(codes.Ok, "")
 
-	return newStmt(res, query, p.tracer, attrs...), nil
+	return newStmt(p.tracer, res, attrs...), nil
 }

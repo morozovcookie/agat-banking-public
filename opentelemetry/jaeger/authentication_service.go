@@ -13,23 +13,21 @@ var _ banking.AuthenticationService = (*AuthenticationService)(nil)
 
 // AuthenticationService represents a service for managing user authentication process.
 type AuthenticationService struct {
+	tracer  trace.Tracer
 	wrapped banking.AuthenticationService
-
-	tracer trace.Tracer
-	attrs  []attribute.KeyValue
+	attrs   []attribute.KeyValue
 }
 
 // NewAuthenticationService returns a new AuthenticationService instance.
 func NewAuthenticationService(
-	svc banking.AuthenticationService,
 	tracer trace.Tracer,
+	svc banking.AuthenticationService,
 	attrs ...attribute.KeyValue,
 ) *AuthenticationService {
 	return &AuthenticationService{
+		tracer:  tracer,
 		wrapped: svc,
-
-		tracer: tracer,
-		attrs:  attrs,
+		attrs:   attrs,
 	}
 }
 

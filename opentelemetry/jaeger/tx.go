@@ -14,18 +14,16 @@ import (
 var _ percona.Tx = (*tx)(nil)
 
 type tx struct {
+	tracer  trace.Tracer
 	wrapped percona.Tx
-
-	tracer trace.Tracer
-	attrs  []attribute.KeyValue
+	attrs   []attribute.KeyValue
 }
 
-func newTx(source percona.Tx, tracer trace.Tracer, attrs ...attribute.KeyValue) *tx {
+func newTx(tracer trace.Tracer, source percona.Tx, attrs ...attribute.KeyValue) *tx {
 	return &tx{
+		tracer:  tracer,
 		wrapped: source,
-
-		tracer: tracer,
-		attrs:  attrs,
+		attrs:   attrs,
 	}
 }
 
@@ -45,7 +43,7 @@ func (tx *tx) PrepareContext(ctx context.Context, query string) (percona.Stmt, e
 
 	span.SetStatus(codes.Ok, "")
 
-	return newStmt(res, query, tx.tracer, tx.attrs...), nil
+	return newStmt(tx.tracer, res, tx.attrs...), nil
 }
 
 // Commit commits the transaction.
@@ -84,19 +82,17 @@ var _ percona.TxBeginner = (*TxBeginner)(nil)
 
 // TxBeginner represents a service for creating transaction.
 type TxBeginner struct {
+	tracer  trace.Tracer
 	wrapped percona.TxBeginner
-
-	tracer trace.Tracer
-	attrs  []attribute.KeyValue
+	attrs   []attribute.KeyValue
 }
 
 // NewTxBeginner returns a new TxBeginner instance.
-func NewTxBeginner(beginner percona.TxBeginner, tracer trace.Tracer, attrs ...attribute.KeyValue) *TxBeginner {
+func NewTxBeginner(tracer trace.Tracer, beginner percona.TxBeginner, attrs ...attribute.KeyValue) *TxBeginner {
 	return &TxBeginner{
+		tracer:  tracer,
 		wrapped: beginner,
-
-		tracer: tracer,
-		attrs:  attrs,
+		attrs:   attrs,
 	}
 }
 
@@ -114,5 +110,5 @@ func (beginner *TxBeginner) BeginTx(ctx context.Context, opts *sql.TxOptions) (p
 
 	span.SetStatus(codes.Ok, "")
 
-	return newTx(res, beginner.tracer, beginner.attrs...), nil
+	return newTx(beginner.tracer, res, beginner.attrs...), nil
 }

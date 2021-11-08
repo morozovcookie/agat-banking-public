@@ -12,19 +12,17 @@ var _ http.Handler = (*HTTPHandler)(nil)
 
 // A HTTPHandler responds to an HTTP request.
 type HTTPHandler struct {
+	tracer  trace.Tracer
 	wrapped http.Handler
-
-	tracer trace.Tracer
-	attrs  []attribute.KeyValue
+	attrs   []attribute.KeyValue
 }
 
 // NewHTTPHandler returns a new HTTPHandler instance.
-func NewHTTPHandler(handler http.Handler, tracer trace.Tracer, attrs ...attribute.KeyValue) *HTTPHandler {
+func NewHTTPHandler(tracer trace.Tracer, handler http.Handler, attrs ...attribute.KeyValue) *HTTPHandler {
 	return &HTTPHandler{
+		tracer:  tracer,
 		wrapped: handler,
-
-		tracer: tracer,
-		attrs:  attrs,
+		attrs:   attrs,
 	}
 }
 
