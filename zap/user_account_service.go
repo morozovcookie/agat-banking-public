@@ -11,15 +11,15 @@ var _ banking.UserAccountService = (*UserAccountService)(nil)
 
 // UserAccountService represents a service for managing UserAccount data.
 type UserAccountService struct {
-	wrapped banking.UserAccountService
-	logger  *zap.Logger
+	loggerCreator LoggerCreator
+	wrapped       banking.UserAccountService
 }
 
 // NewUserAccountService returns a new UserAccountService instance.
-func NewUserAccountService(svc banking.UserAccountService, creator LoggerCreator) *UserAccountService {
+func NewUserAccountService(creator LoggerCreator, svc banking.UserAccountService) *UserAccountService {
 	return &UserAccountService{
-		wrapped: svc,
-		logger:  creator.CreateLogger("UserAccountService"),
+		loggerCreator: creator,
+		wrapped:       svc,
 	}
 }
 
@@ -31,13 +31,16 @@ func (svc *UserAccountService) FindUserAccountByEmailAddress(
 	*banking.UserAccount,
 	error,
 ) {
+	logger := svc.loggerCreator.CreateLogger(ctx, "UserAccountService",
+		"FindUserAccountByEmailAddress")
+
 	account, err := svc.wrapped.FindUserAccountByEmailAddress(ctx, emailAddress)
 
-	svc.logger.Debug("find user account by email address", zap.String("email", emailAddress),
-		zap.Any("account", account), zap.Error(err))
+	logger.Debug("find user account by email address", zap.String("email", emailAddress), zap.Error(err),
+		zap.Any("account", account))
 
 	if err != nil {
-		svc.logger.Error("find user account by email", zap.String("email", emailAddress), zap.Error(err))
+		logger.Error("find user account by email", zap.String("email", emailAddress), zap.Error(err))
 
 		return nil, err // nolint:wrapcheck
 	}
@@ -53,13 +56,16 @@ func (svc *UserAccountService) FindUserAccountByUserName(
 	*banking.UserAccount,
 	error,
 ) {
+	logger := svc.loggerCreator.CreateLogger(ctx, "UserAccountService",
+		"FindUserAccountByUserName")
+
 	account, err := svc.wrapped.FindUserAccountByUserName(ctx, userName)
 
-	svc.logger.Debug("find user account by username", zap.String("username", userName),
-		zap.Any("account", account), zap.Error(err))
+	logger.Debug("find user account by username", zap.String("username", userName), zap.Error(err),
+		zap.Any("account", account))
 
 	if err != nil {
-		svc.logger.Error("find user account by username", zap.String("username", userName), zap.Error(err))
+		logger.Error("find user account by username", zap.String("username", userName), zap.Error(err))
 
 		return nil, err // nolint:wrapcheck
 	}

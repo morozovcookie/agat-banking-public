@@ -11,46 +11,44 @@ import (
 var _ percona.Tx = (*tx)(nil)
 
 type tx struct {
-	wrapped percona.Tx
-	logger  *zap.Logger
+	loggerCreator LoggerCreator
+	wrapped       percona.Tx
 }
 
-func newTx(wrapped percona.Tx, logger *zap.Logger) *tx {
+func newTx(creator LoggerCreator, wrapped percona.Tx) *tx {
 	return &tx{
-		wrapped: wrapped,
-		logger:  logger,
+		loggerCreator: creator,
+		wrapped:       wrapped,
 	}
 }
 
 // PrepareContext returns prepared statement.
 func (tx *tx) PrepareContext(ctx context.Context, query string) (percona.Stmt, error) {
+	logger := tx.loggerCreator.CreateLogger(ctx, "Tx", "PrepareContext")
+
 	res, err := tx.wrapped.PrepareContext(ctx, query)
 
-	tx.logger.Debug("prepare",
-		zap.String("query", query),
-		zap.Error(err))
+	logger.Debug("prepare", zap.String("query", query), zap.Error(err))
 
 	if err != nil {
-		tx.logger.Error("prepare",
-			zap.String("query", query),
-			zap.Error(err))
+		logger.Error("prepare", zap.String("query", query), zap.Error(err))
 
 		return nil, err // nolint:wrapcheck
 	}
 
-	return newStmt(res, query, tx.logger), nil
+	return newStmt(tx.loggerCreator, res, query), nil
 }
 
 // Commit commits the transaction.
 func (tx *tx) Commit(ctx context.Context) error {
+	logger := tx.loggerCreator.CreateLogger(ctx, "Tx", "Commit")
+
 	err := tx.wrapped.Commit(ctx)
 
-	tx.logger.Debug("commit",
-		zap.Error(err))
+	logger.Debug("commit", zap.Error(err))
 
 	if err != nil {
-		tx.logger.Error("commit",
-			zap.Error(err))
+		logger.Error("commit", zap.Error(err))
 
 		return err // nolint:wrapcheck
 	}
@@ -60,14 +58,14 @@ func (tx *tx) Commit(ctx context.Context) error {
 
 // Rollback aborts the transaction.
 func (tx *tx) Rollback(ctx context.Context) error {
+	logger := tx.loggerCreator.CreateLogger(ctx, "Tx", "Rollback")
+
 	err := tx.wrapped.Rollback(ctx)
 
-	tx.logger.Debug("rollback",
-		zap.Error(err))
+	logger.Debug("rollback", zap.Error(err))
 
 	if err != nil {
-		tx.logger.Error("rollback",
-			zap.Error(err))
+		logger.Error("rollback", zap.Error(err))
 
 		return err // nolint:wrapcheck
 	}
@@ -79,35 +77,31 @@ var _ percona.TxBeginner = (*TxBeginner)(nil)
 
 // TxBeginner represents a service for creating transaction.
 type TxBeginner struct {
-	wrapped percona.TxBeginner
-	logger  *zap.Logger
-
 	loggerCreator LoggerCreator
+	wrapped       percona.TxBeginner
 }
 
 // NewTxBeginner returns a new TxBeginner instance.
-func NewTxBeginner(beginner percona.TxBeginner, creator LoggerCreator) *TxBeginner {
+func NewTxBeginner(creator LoggerCreator, beginner percona.TxBeginner) *TxBeginner {
 	return &TxBeginner{
-		wrapped: beginner,
-		logger:  creator.CreateLogger("TxBeginner"),
-
 		loggerCreator: creator,
+		wrapped:       beginner,
 	}
 }
 
 // BeginTx starts a transaction.
 func (beginner *TxBeginner) BeginTx(ctx context.Context, opts *sql.TxOptions) (percona.Tx, error) {
+	logger := beginner.loggerCreator.CreateLogger(ctx, "TxBeginner", "BeginTx")
+
 	res, err := beginner.wrapped.BeginTx(ctx, opts)
 
-	beginner.logger.Debug("begin",
-		zap.Error(err))
+	logger.Debug("begin", zap.Error(err))
 
 	if err != nil {
-		beginner.logger.Error("begin",
-			zap.Error(err))
+		logger.Error("begin", zap.Error(err))
 
 		return nil, err // nolint:wrapcheck
 	}
 
-	return newTx(res, beginner.loggerCreator.CreateLogger("Tx")), nil
+	return newTx(beginner.loggerCreator, res), nil
 }
