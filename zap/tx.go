@@ -18,7 +18,7 @@ type tx struct {
 func newTx(wrapped percona.Tx, logger *zap.Logger) *tx {
 	return &tx{
 		wrapped: wrapped,
-		logger:  logger.With(zap.String("component", "Tx")),
+		logger:  logger,
 	}
 }
 
@@ -81,13 +81,17 @@ var _ percona.TxBeginner = (*TxBeginner)(nil)
 type TxBeginner struct {
 	wrapped percona.TxBeginner
 	logger  *zap.Logger
+
+	loggerCreator LoggerCreator
 }
 
 // NewTxBeginner returns a new TxBeginner instance.
-func NewTxBeginner(beginner percona.TxBeginner, logger *zap.Logger) *TxBeginner {
+func NewTxBeginner(beginner percona.TxBeginner, creator LoggerCreator) *TxBeginner {
 	return &TxBeginner{
 		wrapped: beginner,
-		logger:  logger.With(zap.String("component", "TxBeginner")),
+		logger:  creator.CreateLogger("TxBeginner"),
+
+		loggerCreator: creator,
 	}
 }
 
@@ -105,5 +109,5 @@ func (beginner *TxBeginner) BeginTx(ctx context.Context, opts *sql.TxOptions) (p
 		return nil, err // nolint:wrapcheck
 	}
 
-	return newTx(res, beginner.logger), nil
+	return newTx(res, beginner.loggerCreator.CreateLogger("Tx")), nil
 }

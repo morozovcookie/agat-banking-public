@@ -17,23 +17,25 @@ var _ http.Handler = (*HTTPHandler)(nil)
 
 // A HTTPHandler responds to an HTTP request.
 type HTTPHandler struct {
-	wrapped http.Handler
-	logger  *zap.Logger
+	loggerCreator LoggerCreator
+	wrapped       http.Handler
 }
 
 // NewHTTPHandler returns a new HTTPHandler instance.
-func NewHTTPHandler(handler http.Handler, logger *zap.Logger) *HTTPHandler {
+func NewHTTPHandler(handler http.Handler, creator LoggerCreator) *HTTPHandler {
 	return &HTTPHandler{
-		wrapped: handler,
-		logger:  logger,
+		loggerCreator: creator,
+		wrapped:       handler,
 	}
 }
 
 func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var handler http.Handler = h.wrapped
 	{
-		handler = logRequest(h.logger, handler)
-		handler = recoverRequest(h.logger, handler)
+		logger := h.loggerCreator.CreateLogger(r.Context(), "HTTPHandler", "ServeHTTP")
+
+		handler = logRequest(logger, handler)
+		handler = recoverRequest(logger, handler)
 	}
 
 	handler.ServeHTTP(w, r)
@@ -99,7 +101,7 @@ func logRequest(logger *zap.Logger, next http.Handler) http.Handler {
 
 		logger.Info(path,
 			zap.Int("status", wrappedResponseWriter.StatusCode()),
-			zap.String("method", r.Method),
+			zap.String("http-method", r.Method),
 			zap.String("path", path),
 			zap.String("query", query),
 			zap.String("ip", realIP(r)),

@@ -16,10 +16,10 @@ type UserAccountService struct {
 }
 
 // NewUserAccountService returns a new UserAccountService instance.
-func NewUserAccountService(svc banking.UserAccountService, logger *zap.Logger) *UserAccountService {
+func NewUserAccountService(svc banking.UserAccountService, creator LoggerCreator) *UserAccountService {
 	return &UserAccountService{
 		wrapped: svc,
-		logger:  logger.With(zap.String("component", "UserAccountService")),
+		logger:  creator.CreateLogger("UserAccountService"),
 	}
 }
 

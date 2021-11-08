@@ -11,15 +11,15 @@ var _ banking.AuthenticationService = (*AuthenticationService)(nil)
 
 // AuthenticationService represents a service for managing user authentication process.
 type AuthenticationService struct {
-	wrapped banking.AuthenticationService
-	logger  *zap.Logger
+	loggerCreator LoggerCreator
+	wrapped       banking.AuthenticationService
 }
 
 // NewAuthenticationService returns a new AuthenticationService instance.
-func NewAuthenticationService(svc banking.AuthenticationService, logger *zap.Logger) *AuthenticationService {
+func NewAuthenticationService(creator LoggerCreator, svc banking.AuthenticationService) *AuthenticationService {
 	return &AuthenticationService{
-		wrapped: svc,
-		logger:  logger.With(zap.String("component", "AuthenticationService")),
+		loggerCreator: creator,
+		wrapped:       svc,
 	}
 }
 
@@ -33,15 +33,18 @@ func (svc *AuthenticationService) AuthenticateUserByEmail(
 	banking.Token,
 	error,
 ) {
+	logger := svc.loggerCreator.CreateLogger(ctx, "AuthenticationService",
+		"AuthenticateUserByEmail")
+
 	accessToken, refreshToken, err := svc.wrapped.AuthenticateUserByEmail(ctx, email, password)
 
-	svc.logger.Debug("authenticate user by email", zap.String("email", email),
+	logger.Debug("authenticate user by email", zap.String("email", email), zap.Error(err),
 		zap.Stringer("password", password), zap.Stringer("access_token", accessToken),
-		zap.Stringer("refresh_token", refreshToken), zap.Error(err))
+		zap.Stringer("refresh_token", refreshToken))
 
 	if err != nil {
-		svc.logger.Error("authenticate user by email", zap.String("email", email),
-			zap.Stringer("password", password), zap.Error(err))
+		logger.Error("authenticate user by email", zap.String("email", email), zap.Error(err),
+			zap.Stringer("password", password))
 
 		return nil, nil, err // nolint:wrapcheck
 	}
@@ -59,15 +62,18 @@ func (svc *AuthenticationService) AuthenticateUserByUsername(
 	banking.Token,
 	error,
 ) {
+	logger := svc.loggerCreator.CreateLogger(ctx, "AuthenticationService",
+		"AuthenticateUserByUsername")
+
 	accessToken, refreshToken, err := svc.wrapped.AuthenticateUserByUsername(ctx, username, password)
 
-	svc.logger.Debug("authenticate user by username", zap.String("username", username),
+	logger.Debug("authenticate user by username", zap.String("username", username), zap.Error(err),
 		zap.Stringer("password", password), zap.Stringer("access_token", accessToken),
-		zap.Stringer("refresh_token", refreshToken), zap.Error(err))
+		zap.Stringer("refresh_token", refreshToken))
 
 	if err != nil {
-		svc.logger.Error("authenticate user by username", zap.String("username", username),
-			zap.Stringer("password", password), zap.Error(err))
+		logger.Error("authenticate user by username", zap.String("username", username), zap.Error(err),
+			zap.Stringer("password", password))
 
 		return nil, nil, err // nolint:wrapcheck
 	}
