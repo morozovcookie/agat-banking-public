@@ -19,21 +19,27 @@ var _ banking.TokenService = (*RefreshTokenService)(nil)
 type RefreshTokenService struct {
 	preparer Preparer
 
-	timer         banking.Timer
-	tokenFactory  banking.TokenFactory
-	secretFactory banking.SecretFactory
+	tokenBuilderCreator banking.TokenBuilderCreator
+	timer               banking.Timer
 }
 
 // NewRefreshTokenService returns a new instance of RefreshTokenService.
-func NewRefreshTokenService(preparer Preparer) *RefreshTokenService {
+func NewRefreshTokenService(
+	preparer Preparer,
+	tokenBuilderCreator banking.TokenBuilderCreator,
+	timer banking.Timer,
+) *RefreshTokenService {
 	return &RefreshTokenService{
 		preparer: preparer,
+
+		tokenBuilderCreator: tokenBuilderCreator,
+		timer:               timer,
 	}
 }
 
 // StoreToken stores a single Token.
 func (svc *RefreshTokenService) StoreToken(ctx context.Context, token banking.Token) error {
-	return svc.storeToken(ctx, token, banking.NanosecondsToMilliseconds(token.Expiration().UnixNano()))
+	return svc.storeToken(ctx, token, banking.TimeToMilliseconds(token.Until()))
 }
 
 // ExpireToken expires single Token.
@@ -51,12 +57,12 @@ func (svc *RefreshTokenService) ExpireToken(ctx context.Context, id banking.ID) 
 	return token, nil
 }
 
-func (svc *RefreshTokenService) storeToken(ctx context.Context, token banking.Token, validUntil int64) error {
+func (svc *RefreshTokenService) storeToken(ctx context.Context, token banking.Token, until int64) error {
 	var (
 		tokenID       = token.ID().String()
 		userAccountID = token.Account().ID.String()
-		issuedAt      = banking.NanosecondsToMilliseconds(token.IssuedAt().UnixNano())
-		expiration    = banking.NanosecondsToMilliseconds(token.Expiration().UnixNano())
+		issuedAt      = banking.TimeToMilliseconds(token.IssuedAt())
+		expiration    = banking.TimeToMilliseconds(token.Expiration())
 		value         = token.String()
 	)
 
@@ -68,24 +74,20 @@ func (svc *RefreshTokenService) storeToken(ctx context.Context, token banking.To
 	query, args, err := squirrel.Insert("refresh_tokens").
 		Columns("token_id", "token_user_account_id", "token_issued_at", "token_expiration",
 			"token_valid_until", "token_value", "created_at").
-		Values(tokenID, userAccountID, issuedAt, expiration, validUntil, value, createdAt).
+		Values(tokenID, userAccountID, issuedAt, expiration, until, value, createdAt).
 		ToSql()
 	if err != nil {
 		return errors.Wrap(err, "store token")
 	}
 
-	stmt, err := svc.preparer.PrepareContext(ctx, query)
+	tokenStmt, err := svc.preparer.PrepareContext(ctx, query)
 	if err != nil {
 		return errors.Wrap(err, "store token")
 	}
 
-	defer func(ctx context.Context, stmt Stmt) {
-		if closeErr := stmt.Close(ctx); closeErr != nil {
-			err = closeErr
-		}
-	}(ctx, stmt)
+	defer tokenStmt.Close(ctx)
 
-	if _, err = stmt.ExecContext(ctx, args...); err != nil {
+	if _, err = tokenStmt.ExecContext(ctx, args...); err != nil {
 		return errors.Wrap(err, "store token")
 	}
 
@@ -94,15 +96,51 @@ func (svc *RefreshTokenService) storeToken(ctx context.Context, token banking.To
 
 // FindTokenByID returns a single Token.
 func (svc *RefreshTokenService) FindTokenByID(ctx context.Context, id banking.ID) (banking.Token, error) {
-	query, args, err := squirrel.Select().
+	query, args, err := squirrel.Select("token_id", "token_user_account_id", "token_issued_at",
+		"token_expiration", "token_valid_until").
 		From("refresh_tokens").
 		Where(squirrel.Eq{
 			"token_id": id.String(),
-	}).
+		}).
 		Limit(1).
 		ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "find token by id")
+	}
 
-	return nil, nil
+	tokenStmt, err := svc.preparer.PrepareContext(ctx, query)
+	if err != nil {
+		return nil, errors.Wrap(err, "find token by id")
+	}
+
+	defer tokenStmt.Close(ctx)
+
+	userAccountStmt, err := svc.createUserAccountStmt(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "find token by id")
+	}
+
+	defer userAccountStmt.Close(ctx)
+
+	token, err := svc.scanTokenRow(ctx, tokenStmt.QueryRowContext(ctx, args...), userAccountStmt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, errors.Wrap(banking.ErrTokenDoesNotExist, "find token by id")
+	}
+
+	if err != nil {
+		return nil, errors.Wrap(err, "find token by id")
+	}
+
+	now, err := svc.timer.Time(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "find token by id")
+	}
+
+	if now.After(token.Until()) {
+		return nil, errors.Wrap(banking.ErrTokenDoesNotExist, "find token by id")
+	}
+
+	return token, nil
 }
 
 // RemoveExpiredTokens removes expired tokens.
@@ -133,17 +171,17 @@ func (svc *RefreshTokenService) findExpiredTokens(
 	[]banking.Token,
 	error,
 ) {
-	validUntil, err := svc.timer.Time(ctx)
+	until, err := svc.timer.Time(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "find expired tokens")
 	}
 
 	query, args, err := squirrel.Select("token_id", "token_user_account_id", "token_issued_at",
-		"token_expiration").
+		"token_expiration", "token_valid_until").
 		Distinct().
 		From("refresh_tokens").
 		Where(squirrel.Lt{
-			"valid_until": banking.NanosecondsToMilliseconds(validUntil.UnixNano()),
+			"token_valid_until": banking.TimeToMilliseconds(until),
 		}).
 		Limit(opts.Limit()).
 		ToSql()
@@ -151,39 +189,130 @@ func (svc *RefreshTokenService) findExpiredTokens(
 		return nil, errors.Wrap(err, "find expired tokens")
 	}
 
-	stmt, err := svc.preparer.PrepareContext(ctx, query)
+	tokenStmt, err := svc.preparer.PrepareContext(ctx, query)
 	if err != nil {
 		return nil, errors.Wrap(err, "find expired tokens")
 	}
 
-	defer func(ctx context.Context, stmt Stmt){
-		if closeErr := stmt.Close(ctx); closeErr != nil {
-			err = closeErr
-		}
-	}(ctx, stmt)
+	defer tokenStmt.Close(ctx)
 
-	rows, err := stmt.QueryContext(ctx, args...)
+	rows, err := tokenStmt.QueryContext(ctx, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "find expired tokens")
 	}
 
-	defer func(rows *sql.Rows){
-		if closeErr := rows.Close(); closeErr != nil {
-			err = closeErr
-		}
-	}(rows)
+	defer rows.Close()
 
-	var ()
+	userAccountStmt, err := svc.createUserAccountStmt(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "find expired tokens")
+	}
+
+	defer userAccountStmt.Close(ctx)
+
+	tt, err := svc.scanTokenRows(ctx, rows, userAccountStmt, opts)
+	if err != nil {
+		return nil, errors.Wrap(err, "find expired tokens")
+	}
+
+	return tt, nil
+}
+
+func (svc *RefreshTokenService) scanTokenRows(
+	ctx context.Context,
+	rows *sql.Rows,
+	userAccountStmt Stmt,
+	opts banking.FindOptions,
+) (
+	[]banking.Token,
+	error,
+) {
+	tt := make([]banking.Token, 0, opts.Limit())
 
 	for rows.Next() {
+		token, err := svc.scanTokenRow(ctx, rows, userAccountStmt)
+		if err != nil {
+			return nil, errors.Wrap(err, "scan token rows")
+		}
 
+		tt = append(tt, token)
 	}
 
-	if err = rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "find expired tokens")
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "scan token rows")
 	}
 
-	return nil, nil
+	return tt, nil
+}
+
+func (svc *RefreshTokenService) scanTokenRow(
+	ctx context.Context,
+	scanner squirrel.RowScanner,
+	userAccountStmt Stmt,
+) (
+	banking.Token,
+	error,
+) {
+	var (
+		jti   string
+		sub   string
+		iat   int64
+		exp   int64
+		until int64
+	)
+
+	if err := scanner.Scan(&jti, &sub, &iat, &exp, &until); err != nil {
+		return nil, errors.Wrap(err, "scan token row")
+	}
+
+	account, err := fetchUserAccount(ctx, userAccountStmt, sub)
+	if err != nil {
+		return nil, errors.Wrap(err, "scan token row")
+	}
+
+	token, err := svc.tokenBuilderCreator.CreateTokenBuilder(ctx).
+		WithID(banking.ID(jti)).
+		WithAccount(account).
+		WithIssuedAt(banking.MillisecondsToTime(iat)).
+		WithExpiration(banking.MillisecondsToTime(exp)).
+		WithValidUntil(banking.MillisecondsToTime(until)).
+		Build(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "scan token row")
+	}
+
+	return token, nil
+}
+
+func (svc *RefreshTokenService) createUserAccountStmt(ctx context.Context) (Stmt, error) {
+	query, _, err := squirrel.Select("account_id", "username", "email_address", "password_hash", "user_id").
+		From("user_accounts").
+		Where(squirrel.Expr("account_id = ?")).
+		Limit(1).
+		ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "create user accounts stmt")
+	}
+
+	return svc.preparer.PrepareContext(ctx, query)
+}
+
+func fetchUserAccount(ctx context.Context, stmt Stmt, accountID string) (*banking.UserAccount, error) {
+	var userID string
+
+	account := new(banking.UserAccount)
+	account.ID = banking.ID(accountID)
+
+	err := stmt.QueryRowContext(ctx, accountID).Scan(&account.UserName, &account.EmailAddress, &account.PasswordHash,
+		&userID)
+	if err != nil {
+		return nil, errors.Wrap(err, "find token by id")
+	}
+
+	account.User = new(banking.User)
+	account.User.ID = banking.ID(userID)
+
+	return account, nil
 }
 
 func (svc *RefreshTokenService) removeExpiredTokens(ctx context.Context, tt []banking.Token) error {
@@ -202,18 +331,14 @@ func (svc *RefreshTokenService) removeExpiredTokens(ctx context.Context, tt []ba
 		return errors.Wrap(err, "remove expired tokens")
 	}
 
-	stmt, err := svc.preparer.PrepareContext(ctx, query)
+	tokenStmt, err := svc.preparer.PrepareContext(ctx, query)
 	if err != nil {
 		return errors.Wrap(err, "remove expired tokens")
 	}
 
-	defer func(ctx context.Context, stmt Stmt){
-		if closeErr := stmt.Close(ctx); closeErr != nil {
-			err = closeErr
-		}
-	}(ctx, stmt)
+	defer tokenStmt.Close(ctx)
 
-	if _, err = stmt.ExecContext(ctx, args...); err != nil {
+	if _, err = tokenStmt.ExecContext(ctx, args...); err != nil {
 		return errors.Wrap(err, "remove expired tokens")
 	}
 

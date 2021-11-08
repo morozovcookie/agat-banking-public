@@ -11,21 +11,24 @@ var _ banking.AuthenticationService = (*AuthenticationService)(nil)
 
 // AuthenticationService represents a service for managing user authentication process.
 type AuthenticationService struct {
-	userAccountService banking.UserAccountService
-	tokenFactory       banking.TokenFactory
-	tokenService       banking.TokenService
+	userAccountService         banking.UserAccountService
+	accessTokenBuilderCreator  banking.TokenBuilderCreator
+	refreshTokenBuilderCreator banking.TokenBuilderCreator
+	tokenService               banking.TokenService
 }
 
 // NewAuthenticationService returns a new AuthenticationService instance.
 func NewAuthenticationService(
 	userAccountService banking.UserAccountService,
-	tokenFactory banking.TokenFactory,
+	accessTokenBuilderCreator banking.TokenBuilderCreator,
+	refreshTokenBuilderCreator banking.TokenBuilderCreator,
 	tokenService banking.TokenService,
 ) *AuthenticationService {
 	return &AuthenticationService{
-		userAccountService: userAccountService,
-		tokenFactory:       tokenFactory,
-		tokenService:       tokenService,
+		userAccountService:         userAccountService,
+		accessTokenBuilderCreator:  accessTokenBuilderCreator,
+		refreshTokenBuilderCreator: refreshTokenBuilderCreator,
+		tokenService:               tokenService,
 	}
 }
 
@@ -88,12 +91,12 @@ func (svc *AuthenticationService) authenticateUser(
 		return nil, nil, errors.Wrap(banking.ErrIncorrectPassword, "authenticate user")
 	}
 
-	accessToken, err := svc.tokenFactory.CreateAccessToken(ctx, account)
+	accessToken, err := svc.createAccessToken(ctx, account)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "authenticate user")
 	}
 
-	refreshToken, err := svc.tokenFactory.CreateRefreshToken(ctx, account)
+	refreshToken, err := svc.createRefreshToken(ctx, account)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "authenticate user")
 	}
@@ -103,4 +106,38 @@ func (svc *AuthenticationService) authenticateUser(
 	}
 
 	return accessToken, refreshToken, nil
+}
+
+func (svc *AuthenticationService) createAccessToken(
+	ctx context.Context,
+	account *banking.UserAccount,
+) (
+	banking.Token,
+	error,
+) {
+	token, err := svc.accessTokenBuilderCreator.CreateTokenBuilder(ctx).
+		WithAccount(account).
+		Build(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "create access token")
+	}
+
+	return token, nil
+}
+
+func (svc *AuthenticationService) createRefreshToken(
+	ctx context.Context,
+	account *banking.UserAccount,
+) (
+	banking.Token,
+	error,
+) {
+	token, err := svc.refreshTokenBuilderCreator.CreateTokenBuilder(ctx).
+		WithAccount(account).
+		Build(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "create access token")
+	}
+
+	return token, nil
 }

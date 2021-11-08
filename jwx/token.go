@@ -15,75 +15,55 @@ var _ banking.Token = (*Token)(nil)
 
 // Token represents an JWT.
 type Token struct {
-	token     jwt.Token
 	tokenType banking.TokenType
+	account   *banking.UserAccount
+	until     time.Time
 
-	subject *banking.UserAccount
-	value   banking.SecretString
+	value jwt.Token
+
+	secret banking.SecretString
 }
 
-func NewToken(
-	ctx context.Context,
-	factory banking.SecretFactory,
-	signer TokenSigner,
-	tokenType banking.TokenType,
-	opts ...TokenOption,
-) (
-	t *Token,
-	err error,
-) {
-	t = &Token{
-		token:     jwt.New(),
+func NewToken(tokenType banking.TokenType, account *banking.UserAccount, value jwt.Token) *Token {
+	return &Token{
 		tokenType: tokenType,
-	}
+		account:   account,
 
-	if err = t.token.Set(`type`, tokenType.String()); err != nil {
-		return nil, errors.Wrap(err, "init token")
-	}
+		value: value,
 
-	for _, opt := range opts {
-		if err = opt.apply(t); err != nil {
-			return nil, errors.Wrap(err, "init token")
-		}
+		secret: nil,
 	}
+}
 
+func (t *Token) Sign(ctx context.Context, signer TokenSigner, factory banking.SecretFactory) (err error) {
 	buf := new(bytes.Buffer)
 
-	if err = t.sign(ctx, signer, buf); err != nil {
-		return nil, errors.Wrap(err, "init token")
+	if err = sign(ctx, signer, buf, t.value); err != nil {
+		return errors.Wrap(err, "sign token")
 	}
 
-	if t.value, err = t.encrypt(ctx, factory, buf); err != nil {
-		return nil, errors.Wrap(err, "init token")
-	}
-
-	return t, nil
-}
-
-func (t *Token) sign(ctx context.Context, signer TokenSigner, w io.Writer) error {
-	if err := signer.SignToken(ctx, w, t.token); err != nil {
+	if t.secret, err = encrypt(ctx, factory, buf); err != nil {
 		return errors.Wrap(err, "sign token")
 	}
 
 	return nil
 }
 
-func (t *Token) encrypt(ctx context.Context, factory banking.SecretFactory, r io.Reader) (banking.SecretString, error) {
-	ss, err := factory.CreateFromDecryptedData(ctx, r)
-	if err != nil {
-		return nil, errors.Wrap(err, "encrypt token")
-	}
+func sign(ctx context.Context, signer TokenSigner, dst io.Writer, src jwt.Token) error {
+	return signer.SignToken(ctx, dst, src)
+}
 
-	return ss, nil
+func encrypt(ctx context.Context, factory banking.SecretFactory, src io.Reader) (banking.SecretString, error) {
+	return factory.CreateFromDecryptedData(ctx, src)
 }
 
 func (t *Token) String() string {
-	return t.value.String()
+	return t.secret.String()
 }
 
 // ID returns the token unique identifier.
 func (t *Token) ID() banking.ID {
-	return banking.ID(t.token.JwtID())
+	return banking.ID(t.value.JwtID())
 }
 
 // Type returns the token type.
@@ -93,20 +73,31 @@ func (t *Token) Type() banking.TokenType {
 
 // Account returns the subject of token.
 func (t *Token) Account() *banking.UserAccount {
-	return t.subject
+	return t.account
 }
 
 // IssuedAt returns the UTC time when token was issued.
 func (t *Token) IssuedAt() time.Time {
-	return t.token.IssuedAt()
+	return t.value.IssuedAt()
 }
 
-// Expiration return the duration which after token will be expired.
+// Expiration returns the UTC time which after token will be expired.
 func (t *Token) Expiration() time.Time {
-	return t.token.Expiration()
+	return t.value.Expiration()
 }
 
-// Value returns token as SecretString.
-func (t *Token) Value() banking.SecretString {
-	return t.value
+// NotBefore returns the time before which the token is not valid.
+func (t *Token) NotBefore() time.Time {
+	return t.value.NotBefore()
+}
+
+// Until returns the time which after token will be invalid.
+// NOTE: Expiration is the constant parameter, but ValidUntil could be changed (e.g. when user signing out).
+func (t *Token) Until() time.Time {
+	return t.until
+}
+
+// SecretString returns token as SecretString.
+func (t *Token) SecretString() banking.SecretString {
+	return t.secret
 }

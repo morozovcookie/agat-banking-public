@@ -115,10 +115,10 @@ func (h *AuthenticationHandler) handleSignIn(w http.ResponseWriter, r *http.Requ
 	}
 
 	resp := &SignInResponse{
-		AccessToken:  json.NewSecretString(accessToken.Value(), h.secretFactory),
+		AccessToken:  json.NewSecretString(accessToken.SecretString(), h.secretFactory),
 		ExpiresIn:    accessToken.Expiration().Sub(accessToken.IssuedAt()).Milliseconds(),
 		TokenType:    "Bearer",
-		RefreshToken: json.NewSecretString(refreshToken.Value(), h.secretFactory),
+		RefreshToken: json.NewSecretString(refreshToken.SecretString(), h.secretFactory),
 	}
 
 	encodeResponse(ctx, w, http.StatusOK, resp)
@@ -147,7 +147,7 @@ func authorize(
 func putRefreshTokenIntoCookie(_ context.Context, w http.ResponseWriter, r *http.Request, refreshToken banking.Token) {
 	cookie := &http.Cookie{
 		Name:       "refresh_token",
-		Value:      refreshToken.Value().DecryptedString(),
+		Value:      refreshToken.SecretString().DecryptedString(),
 		Path:       "/",
 		Domain:     r.URL.Host,
 		Expires:    refreshToken.Expiration(),

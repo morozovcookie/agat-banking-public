@@ -5,6 +5,8 @@ import (
 	"context"
 	stdrand "crypto/rand"
 	stdrsa "crypto/rsa"
+	"encoding/hex"
+	"io"
 	"log"
 
 	banking "github.com/morozovcookie/agat-banking"
@@ -17,24 +19,12 @@ import (
 )
 
 func main() {
-	var (
-		identifierGenerator = nanoid.NewIdentifierGenerator()
-		factoryConfig       = &TokenFactoryConfiguration{
-			accessTokenSigner:   nil,
-			refreshTokenSigner:  nil,
-			secretFactory:       nil,
-			identifierGenerator: identifierGenerator,
-			timer:               time.NewUTCTimer(),
-		}
-		err error
-	)
-
 	accessTokenPrivateKey, err := stdrsa.GenerateKey(stdrand.Reader, 4096)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	factoryConfig.accessTokenSigner, err = rsa.NewRS512TokenSigner(accessTokenPrivateKey)
+	accessTokenSigner, err := rsa.NewRS512TokenSigner(accessTokenPrivateKey)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -44,47 +34,96 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	factoryConfig.refreshTokenSigner, err = rsa.NewRS512TokenSigner(refreshTokenPrivateKey)
+	refreshTokenSigner, err := rsa.NewRS512TokenSigner(refreshTokenPrivateKey)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	factoryConfig.secretFactory, err = aes.NewSecretFactory(rand.NewNonceGenerator(),
-		bytes.NewBufferString("a7681ff138d941377c55aefb4ab667b833a823e582c91317f5b5e33c09e6891e"))
+	aesKey := make([]byte, aes.CipherKeyLength)
+
+	if _, err = io.ReadFull(stdrand.Reader, aesKey); err != nil {
+		log.Fatalln(err)
+	}
+
+	key := new(bytes.Buffer)
+
+	if _, err = hex.NewEncoder(key).Write(aesKey); err != nil {
+		log.Fatalln(err)
+	}
+
+	secretFactory, err := aes.NewSecretFactory(rand.NewNonceGenerator(), key)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	var (
-		factory = jwx.NewTokenFactory(factoryConfig)
-
 		ctx     = context.Background()
 		account = new(banking.UserAccount)
 	)
 
-	if account.ID, err = identifierGenerator.GenerateIdentifier(ctx); err != nil {
+	if account.ID, err = nanoid.NewIdentifierGenerator().GenerateIdentifier(ctx); err != nil {
 		log.Fatalln(err)
 	}
 
-	createAccessToken(ctx, factory, account)
+	createAccessToken(ctx, accessTokenSigner, secretFactory, account)
 
-	createRefreshToken(ctx, factory, account)
+	createRefreshToken(ctx, refreshTokenSigner, secretFactory, account)
 }
 
-func createAccessToken(ctx context.Context, factory banking.TokenFactory, account *banking.UserAccount) {
-	accessToken, err := factory.CreateAccessToken(ctx, account)
+func createAccessToken(
+	ctx context.Context,
+	signer jwx.TokenSigner,
+	factory banking.SecretFactory,
+	account *banking.UserAccount,
+) {
+	var (
+		generator = nanoid.NewIdentifierGenerator()
+		timer     = time.NewUTCTimer()
+
+		opts = []jwx.TokenBuilderOption{
+			jwx.WithSigner(signer),
+			jwx.WithSecretFactory(factory),
+			jwx.WithTimer(timer),
+			jwx.WithIdentifierGenerator(generator),
+		}
+	)
+
+	accessToken, err := jwx.NewAccessTokenBuilderCreator(opts...).
+		CreateTokenBuilder(ctx).
+		WithAccount(account).
+		Build(ctx)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	log.Println(accessToken.Value().DecryptedString())
+	log.Println(accessToken.SecretString().DecryptedString())
 }
 
-func createRefreshToken(ctx context.Context, factory banking.TokenFactory, account *banking.UserAccount) {
-	refreshToken, err := factory.CreateRefreshToken(ctx, account)
+func createRefreshToken(
+	ctx context.Context,
+	signer jwx.TokenSigner,
+	factory banking.SecretFactory,
+	account *banking.UserAccount,
+) {
+	var (
+		generator = nanoid.NewIdentifierGenerator()
+		timer     = time.NewUTCTimer()
+
+		opts = []jwx.TokenBuilderOption{
+			jwx.WithSigner(signer),
+			jwx.WithSecretFactory(factory),
+			jwx.WithTimer(timer),
+			jwx.WithIdentifierGenerator(generator),
+		}
+	)
+
+	refreshToken, err := jwx.NewRefreshTokenBuilderCreator(opts...).
+		CreateTokenBuilder(ctx).
+		WithAccount(account).
+		Build(ctx)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	log.Println(refreshToken.Value().DecryptedString())
+	log.Println(refreshToken.SecretString().DecryptedString())
 }

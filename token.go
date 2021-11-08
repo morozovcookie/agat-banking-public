@@ -3,6 +3,7 @@ package banking
 import (
 	"context"
 	"fmt"
+	"io"
 	"time"
 
 	"github.com/pkg/errors"
@@ -54,20 +55,55 @@ type Token interface {
 	// IssuedAt returns the UTC time when token was issued.
 	IssuedAt() time.Time
 
-	// Expiration return the UTC time which after token will be expired.
+	// Expiration returns the UTC time which after token will be expired.
 	Expiration() time.Time
 
-	// Value returns token as SecretString.
-	Value() SecretString
+	// NotBefore returns the time before which the token is not valid.
+	NotBefore() time.Time
+
+	// Until returns the time which after token will be invalid.
+	// NOTE: Expiration is the constant parameter, but ValidUntil could be changed (e.g. when user signing out).
+	Until() time.Time
+
+	// SecretString returns token as SecretString.
+	SecretString() SecretString
 }
 
-// TokenFactory represents a service for creating access and refresh tokens.
-type TokenFactory interface {
-	// CreateAccessToken returns the access token.
-	CreateAccessToken(ctx context.Context, account *UserAccount) (Token, error)
+// TokenBuilder represents a service for parametrized token building.
+type TokenBuilder interface {
+	// WithID sets up the token unique identifier.
+	WithID(jti ID) TokenBuilder
 
-	// CreateRefreshToken returns the refresh token.
-	CreateRefreshToken(ctx context.Context, account *UserAccount) (Token, error)
+	// WithAccount sets up the subject of token.
+	WithAccount(sub *UserAccount) TokenBuilder
+
+	// WithIssuedAt sets up the UTC time when token was issued.
+	WithIssuedAt(iat time.Time) TokenBuilder
+
+	// WithExpiration sets up the UTC time which after token will be expired.
+	WithExpiration(exp time.Time) TokenBuilder
+
+	// WithNotBefore sets up the time before which the token is not valid.
+	WithNotBefore(nbf time.Time) TokenBuilder
+
+	// WithValidUntil sets up the time which after token will be invalid.
+	// NOTE: Expiration is the constant parameter, but ValidUntil could be changed (e.g. when user signing out).
+	WithValidUntil(until time.Time) TokenBuilder
+
+	// Build creates and returns the Token.
+	Build(ctx context.Context) (Token, error)
+}
+
+// TokenBuilderCreator represents a service for producing TokenBuilder instance.
+type TokenBuilderCreator interface {
+	// CreateTokenBuilder returns a new TokeBuilder instance.
+	CreateTokenBuilder(ctx context.Context) TokenBuilder
+}
+
+// TokenParser represents a service for parsing token.
+type TokenParser interface {
+	// ParseToken parse and returns a Token.
+	ParseToken(ctx context.Context, r io.Reader) (Token, error)
 }
 
 // TokenService represents a service for managing token data.
